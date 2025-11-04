@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Career Assessment — Advanced Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    :root{
+      --bg: #F8FAFC; --card:#fff; --primary:#0F172A; --accent:#06B6D4;
+    }
+    body{ font-family: 'Inter', system-ui, -apple-system, sans-serif; background:var(--bg); color:#0f1724 }
+    .card{ background:var(--card); border-radius:14px; padding:18px; box-shadow:0 8px 30px rgba(2,6,23,0.06); border:1px solid rgba(15,23,42,0.04) }
+    .btn-primary{ background:var(--primary); color:white; padding:.6rem 1rem; border-radius:10px }
+    .muted{ color:#6b7280 }
+    .progress { height:8px; background:#e6eef6; border-radius:999px; overflow:hidden }
+    .progress > i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--accent),#06b6d4) }
+    /* small responsive niceties */
+    @media (max-width:840px){ .grid-3{ grid-template-columns: 1fr } }
+  </style>
+</head>
+<body>
+
+  <div class="max-w-6xl mx-auto p-6">
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 rounded-lg bg-gradient-to-br from-sky-600 to-violet-600 text-white flex items-center justify-center font-bold">CA</div>
+        <div>
+          <h1 class="text-2xl font-bold">Career Assessment — Advanced</h1>
+          <div class="muted text-sm">Skills + personality + weekly tracking — demo data stored locally</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="text-right muted text-sm">Signed in as <span id="userDisplay">Guest</span></div>
+        <button id="loginBtn" class="px-3 py-2 border rounded">Login</button>
+        <button id="logoutBtn" class="px-3 py-2 border rounded hidden">Logout</button>
+      </div>
+    </header>
+
+    <!-- Main grid -->
+    <main class="grid grid-cols-3 gap-6 grid-3">
+      <!-- Left: Controls -->
+      <section class="col-span-1 space-y-4">
+        <div class="card">
+          <h3 class="font-semibold mb-1">Take the Full Assessment</h3>
+          <p class="muted text-sm mb-3">Longer, balanced test that evaluates skill strengths & personality.</p>
+          <button class="btn-primary w-full" id="startFullBtn">Start Full Assessment</button>
+        </div>
+
+        <div class="card">
+          <h3 class="font-semibold mb-1">Weekly Mini Assessment</h3>
+          <p class="muted text-sm mb-3">Short check-ins. Helps you track weekly changes.</p>
+          <div class="flex gap-2">
+            <button class="btn-primary flex-1" id="startWeeklyBtn">Take Weekly Test</button>
+            <button class="px-3 py-2 border rounded" id="viewWeeklyBtn">History</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="font-semibold mb-1">Saved Results</h3>
+          <p class="muted text-sm mb-3">View or download your most recent full-assessment result.</p>
+          <div class="flex gap-2">
+            <button class="px-3 py-2 border rounded flex-1" id="loadResultBtn">Load Latest</button>
+            <button class="px-3 py-2 border rounded" id="downloadBtn">Download</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="font-semibold mb-1">Quick actions</h3>
+          <ul class="text-sm mt-2 space-y-2 muted">
+            <li>• Be honest — results work better that way.</li>
+            <li>• Use weekly tests to track changes in interest/confidence.</li>
+            <li>• Explore multiple suggested careers; try mini-projects to test fit.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Middle: Test area -->
+      <section class="col-span-2">
+        <div id="introCard" class="card mb-4">
+          <h2 class="text-xl font-semibold">Welcome</h2>
+          <p class="muted mt-2">Start a full assessment to get a multi-dimensional career profile (skills + personality + interests). Or take weekly mini-tests for ongoing tracking.</p>
+        </div>
+
+        <!-- Full assessment modal / panel -->
+        <div id="fullAssessment" class="card mb-4 hidden">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Full Assessment <span id="sectionLabel" class="muted text-sm ml-2"></span></h3>
+            <div class="muted text-sm">Progress: <span id="fullProgressText">0/0</span></div>
+          </div>
+
+          <div class="progress my-3"><i id="fullProgressBar"></i></div>
+          <div id="fullContent" class="min-h-[220px]"></div>
+
+          <div class="flex gap-2 mt-4">
+            <button id="fullPrev" class="px-3 py-2 border rounded">Back</button>
+            <button id="fullNext" class="btn-primary ml-auto">Next</button>
+            <button id="fullCancel" class="px-3 py-2 border rounded">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Weekly modal / panel -->
+        <div id="weeklyPanel" class="card mb-4 hidden">
+          <h3 class="font-semibold">Weekly Mini Assessment</h3>
+          <div id="weeklyContent" class="mt-3"></div>
+          <div class="flex gap-2 mt-4">
+            <button id="weeklyCancel" class="px-3 py-2 border rounded">Cancel</button>
+            <button id="weeklySubmit" class="btn-primary ml-auto">Submit</button>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="resultsCard" class="card hidden">
+          <div class="flex items-start justify-between">
+            <div>
+              <h3 class="font-semibold text-xl" id="resultsTitle">Your Career Profile</h3>
+              <div class="muted text-sm mt-1">Summary combining skills, personality and interests</div>
+            </div>
+            <div class="text-right">
+              <div class="muted text-sm">Saved: <span id="savedAt">—</span></div>
+              <button id="saveLocalBtn" class="px-3 py-1 border rounded mt-2">Save</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4 mt-4">
+            <div class="p-3 bg-sky-50 rounded">
+              <h4 class="font-semibold">Top Skills</h4>
+              <ul id="skillList" class="mt-2 text-sm"></ul>
+            </div>
+            <div class="p-3 bg-rose-50 rounded">
+              <h4 class="font-semibold">Personality Snapshot</h4>
+              <div id="personalitySummary" class="mt-2 text-sm muted"></div>
+            </div>
+            <div class="p-3 bg-emerald-50 rounded">
+              <h4 class="font-semibold">Interests</h4>
+              <ul id="interestList" class="mt-2 text-sm"></ul>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <h4 class="font-semibold">Career Suggestions (ranked)</h4>
+            <ol id="careerList" class="list-decimal pl-6 mt-2 text-sm"></ol>
+
+            <h4 class="font-semibold mt-4">Actionable next steps</h4>
+            <ul id="actionList" class="list-disc pl-6 mt-2 text-sm"></ul>
+          </div>
+        </div>
+
+        <!-- Weekly history -->
+        <div id="weeklyHistoryCard" class="card hidden mt-4">
+          <h3 class="font-semibold">Weekly Assessment History</h3>
+          <div id="weeklyHistoryList" class="mt-3 text-sm muted"></div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="fixed inset-0 hidden items-center justify-center bg-black/40 z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md card">
+      <h3 class="font-semibold mb-3">Sign In / Create Account</h3>
+      <div class="space-y-3">
+        <input id="nameInput" class="w-full border p-2 rounded" placeholder="Full name (for new accounts)"/>
+        <input id="emailInput" class="w-full border p-2 rounded" placeholder="Email (required)"/>
+        <input id="pwInput" class="w-full border p-2 rounded" placeholder="Password (optional)"/>
+        <div class="flex gap-2 justify-end">
+          <button id="loginCancel" class="px-3 py-2 border rounded">Cancel</button>
+          <button id="loginSubmit" class="btn-primary">Sign in / Save</button>
+        </div>
+        <div class="muted text-sm">Accounts are stored locally (localStorage) for demo purposes.</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* -------------------------
+  Data model & mappings
+   - Skills questions (Likert 1..5)
+   - Personality pairs (A/B)
+   - Interests (checkbox)
+   - Career mapping table (simplified)
+-------------------------*/
+
+const SKILL_QUESTIONS = [
+  { id:'s1', text: "I enjoy coding, debugging or automating tasks.", maps: {tech:1} },
+  { id:'s2', text: "I can visualize and create useful designs or visuals.", maps: {design:1} },
+  { id:'s3', text: "I like analyzing data to find patterns and answers.", maps: {data:1} },
+  { id:'s4', text: "I prefer organizing projects, plans and schedules.", maps: {management:1} },
+  { id:'s5', text: "I enjoy hands-on practical work (building, fixing).", maps: {trades:1} },
+  { id:'s6', text: "I enjoy writing, storytelling or producing content.", maps: {creative:1} },
+  { id:'s7', text: "I like experimenting, prototyping and testing new ideas.", maps: {engineering:1} },
+  { id:'s8', text: "I feel comfortable persuading or selling an idea.", maps: {business:1} },
+  { id:'s9', text: "I pay close attention to detail and accuracy.", maps: {data:1, tech:0.5} },
+  { id:'s10', text: "I prefer roles where I help people's wellbeing directly.", maps: {health:1} }
+];
+
+const PERSONALITY_PAIRS = [
+  { id:'p1', a: "I prefer working alone", b: "I prefer working in teams" },
+  { id:'p2', a: "I plan carefully", b: "I like spontaneity" },
+  { id:'p3', a: "I focus on facts & logic", b: "I focus on feelings & people" },
+  { id:'p4', a: "I enjoy routine", b: "I seek variety" },
+  { id:'p5', a: "I focus deeply on a topic", b: "I like connecting across topics" }
+];
+
+const INTEREST_TOPICS = [
+  "Software / Apps", "Design & UX", "Data & Analytics", "Business & Startups",
+  "Healthcare & Medicine", "Robotics & Hardware", "Arts & Media", "Education",
+  "Environment & Sustainability", "Trades & Practical Skills"
+];
+
+// simplified career mapping rules
+const CAREER_RECIPES = [
+  { id:'software', label:'Software Engineer', tags:['tech','engineering','data'] },
+  { id:'data_scientist', label:'Data Scientist / Analyst', tags:['data','tech'] },
+  { id:'ux', label:'UX / Product Designer', tags:['design','creative'] },
+  { id:'product', label:'Product Manager', tags:['management','business'] },
+  { id:'mechanical', label:'Mechanical / Robotics Engineer', tags:['engineering','trades'] },
+  { id:'nurse', label:'Healthcare Professional', tags:['health'] },
+  { id:'graphic', label:'Graphic Designer / Animator', tags:['design','creative'] },
+  { id:'marketing', label:'Marketing / Communications', tags:['business','creative'] },
+  { id:'electrician', label:'Skilled Trades (Electrician, Plumber)', tags:['trades'] },
+  { id:'teacher', label:'Teacher / Trainer', tags:['education','health'] }
+];
+
+/* -------------------------
+  App state
+-------------------------*/
+let currentUser = JSON.parse(localStorage.getItem('ca_user') || 'null');
+let fullState = {
+  skills: {},        // questionId -> 1..5
+  personality: {},   // pairId -> 'a'|'b'
+  interests: [],     // topics
+  timestamp: null
+};
+let weeklyTemp = {}; // temporary weekly answers
+
+/* -------------------------
+  UI helpers & init
+-------------------------*/
+function updUserUI(){
+  document.getElementById('userDisplay').innerText = currentUser ? currentUser.name || currentUser.email : 'Guest';
+  document.getElementById('loginBtn').classList.toggle('hidden', !!currentUser);
+  document.getElementById('logoutBtn').classList.toggle('hidden', !currentUser);
+}
+updUserUI();
+
+document.getElementById('loginBtn').addEventListener('click', ()=> showLogin(true));
+document.getElementById('logoutBtn').addEventListener('click', ()=> {
+  currentUser = null; localStorage.removeItem('ca_user'); updUserUI();
+  alert('Signed out (demo).'); location.reload();
+});
+
+/* Login modal handlers */
+function showLogin(showCreate=false){
+  document.getElementById('loginModal').classList.remove('hidden');
+  if(showCreate){
+    document.getElementById('nameInput').value = '';
+    document.getElementById('emailInput').value = '';
+    document.getElementById('pwInput').value = '';
+  }
+}
+document.getElementById('loginCancel').addEventListener('click', ()=> document.getElementById('loginModal').classList.add('hidden'));
+document.getElementById('loginSubmit').addEventListener('click', ()=>{
+  const name = document.getElementById('nameInput').value.trim();
+  const email = document.getElementById('emailInput').value.trim();
+  if(!email){ alert('Email required'); return; }
+  currentUser = { name: name || email.split('@')[0], email };
+  localStorage.setItem('ca_user', JSON.stringify(currentUser));
+  document.getElementById('loginModal').classList.add('hidden');
+  updUserUI();
+});
+
+/* Top-level button bindings */
+document.getElementById('startFullBtn').addEventListener('click', startFullAssessment);
+document.getElementById('startWeeklyBtn').addEventListener('click', startWeekly);
+document.getElementById('viewWeeklyBtn').addEventListener('click', showWeeklyHistory);
+document.getElementById('loadResultBtn').addEventListener('click', loadLatestResult);
+document.getElementById('downloadBtn').addEventListener('click', downloadLatestResult);
+
+/* -------------------------
+  Full assessment flow
+-------------------------*/
+let fullPhase = 'skills'; // phases: skills -> personality -> interests -> review
+let fullIndex = 0;
+
+function startFullAssessment(){
+  if(!currentUser){ showLogin(true); return; }
+  // reset state
+  fullState = { skills:{}, personality:{}, interests:[], timestamp: null };
+  fullPhase = 'skills'; fullIndex = 0;
+  document.getElementById('introCard').classList.add('hidden');
+  document.getElementById('fullAssessment').classList.remove('hidden');
+  showFullStep();
+}
+
+function showFullStep(){
+  const content = document.getElementById('fullContent');
+  content.innerHTML = '';
+  if(fullPhase === 'skills'){
+    const q = SKILL_QUESTIONS[fullIndex];
+    document.getElementById('sectionLabel').innerText = 'Skills';
+    renderLikertQuestion(q, content);
+    updateFullProgress(fullIndex+1, SKILL_QUESTIONS.length + PERSONALITY_PAIRS.length + 1); // +1 for interests
+  } else if(fullPhase === 'personality'){
+    const p = PERSONALITY_PAIRS[fullIndex];
+    document.getElementById('sectionLabel').innerText = 'Personality';
+    renderPersonalityPair(p, content);
+    updateFullProgress( SKILL_QUESTIONS.length + fullIndex + 1, SKILL_QUESTIONS.length + PERSONALITY_PAIRS.length + 1 );
+  } else if(fullPhase === 'interests'){
+    document.getElementById('sectionLabel').innerText = 'Interests';
+    renderInterests(content);
+    updateFullProgress( SKILL_QUESTIONS.length + PERSONALITY_PAIRS.length + 1, SKILL_QUESTIONS.length + PERSONALITY_PAIRS.length + 1 );
+  } else if(fullPhase === 'review'){
+    document.getElementById('sectionLabel').innerText = 'Review';
+    renderFullReview(content);
+    updateFullProgress(SKILL_QUESTIONS.length + PERSONALITY_PAIRS.length + 1, SKILL_QUESTIONS.length + PERSONALITY_PAIRS.length + 1);
+  }
+  // buttons
+  document.getElementById('fullPrev').disabled = (fullPhase === 'skills' && fullIndex === 0);
+}
+
+function renderLikertQuestion(q, container){
+  const prev = fullState.skills[q.id] || 3;
+  container.innerHTML = `
+    <div>
+      <p class="font-semibold">${q.text}</p>
+      <div class="mt-3 flex items-center gap-2">
+        <span class="muted text-sm mr-2">Strongly disagree</span>
+        <input id="likert" type="range" min="1" max="5" value="${prev}" class="w-full">
+        <span class="muted text-sm ml-2">Strongly agree</span>
+      </div>
+      <div class="text-sm muted mt-2">Selected: <span id="likertValue">${prev}</span></div>
+    </div>`;
+  const slider = container.querySelector('#likert');
+  const display = container.querySelector('#likertValue');
+  slider.addEventListener('input', ()=> display.innerText = slider.value);
+}
+
+function renderPersonalityPair(p, container){
+  const sel = fullState.personality[p.id] || '';
+  container.innerHTML = `
+    <div>
+      <p class="font-semibold">Choose which describes you best</p>
+      <p class="mt-2">${p.a}  <span class="ml-6">${p.b}</span></p>
+      <div class="mt-3 flex gap-2">
+        <button id="selA" class="px-3 py-2 border rounded ${sel==='a'?'bg-sky-200':''}">I: ${p.a}</button>
+        <button id="selB" class="px-3 py-2 border rounded ${sel==='b'?'bg-sky-200':''}">II: ${p.b}</button>
+      </div>
+    </div>`;
+  container.querySelector('#selA').addEventListener('click', ()=> {
+    fullState.personality[p.id] = 'a'; showFullStep();
+  });
+  container.querySelector('#selB').addEventListener('click', ()=> {
+    fullState.personality[p.id] = 'b'; showFullStep();
+  });
+}
+
+function renderInterests(container){
+  container.innerHTML = `<p class="font-semibold">Which topics interest you? (choose any)</p>
+    <div class="grid grid-cols-2 gap-2 mt-3" id="interestGrid"></div>`;
+  const grid = container.querySelector('#interestGrid');
+  INTEREST_TOPICS.forEach(topic=>{
+    const checked = fullState.interests.includes(topic);
+    const div = document.createElement('button');
+    div.className = `text-sm p-2 border rounded text-left ${checked? 'bg-sky-100':''}`;
+    div.innerText = topic;
+    div.addEventListener('click', ()=>{
+      if(fullState.interests.includes(topic)) fullState.interests = fullState.interests.filter(t=>t!==topic);
+      else fullState.interests.push(topic);
+      renderInterests(container);
+    });
+    grid.appendChild(div);
+  });
+}
+
+function renderFullReview(container){
+  container.innerHTML = `<p class="font-semibold">Review your answers</p>
+    <div class="mt-3 text-sm muted">
+      <strong>Skills:</strong>
+      <ul id="revSkills" class="list-disc pl-6 mt-2"></ul>
+      <strong class="mt-3 block">Personality:</strong>
+      <ul id="revPers" class="list-disc pl-6 mt-2"></ul>
+      <strong class="mt-3 block">Interests:</strong>
+      <div id="revInt" class="mt-2"></div>
+    </div>`;
+  const rs = container.querySelector('#revSkills');
+  SKILL_QUESTIONS.forEach(q=>{
+    const v = fullState.skills[q.id] || '—';
+    const li = document.createElement('li'); li.textContent = `${q.text} — ${v}`; rs.appendChild(li);
+  });
+  const rp = container.querySelector('#revPers');
+  PERSONALITY_PAIRS.forEach(p=>{
+    const v = fullState.personality[p.id] ? (fullState.personality[p.id]==='a' ? p.a : p.b) : '—';
+    const li = document.createElement('li'); li.textContent = `${p.a} / ${p.b} — ${v}`; rp.appendChild(li);
+  });
+  container.querySelector('#revInt').innerText = fullState.interests.join(', ') || 'None selected';
+}
+
+/* navigation handlers */
+document.getElementById('fullNext').addEventListener('click', ()=>{
+  if(fullPhase === 'skills'){
+    // save current likert
+    const q = SKILL_QUESTIONS[fullIndex];
+    const slider = document.getElementById('likert');
+    if(!slider){ alert('Please choose a value'); return; }
+    fullState.skills[q.id] = Number(slider.value);
+    if(fullIndex < SKILL_QUESTIONS.length -1){ fullIndex++; showFullStep(); }
+    else { fullPhase = 'personality'; fullIndex = 0; showFullStep(); }
+  } else if(fullPhase === 'personality'){
+    // must have selected
+    const p = PERSONALITY_PAIRS[fullIndex];
+    if(!fullState.personality[p.id]){ alert('Please choose one option'); return; }
+    if(fullIndex < PERSONALITY_PAIRS.length -1){ fullIndex++; showFullStep(); }
+    else { fullPhase = 'interests'; fullIndex = 0; showFullStep(); document.getElementById('fullNext').innerText = 'Review & Score'; }
+  } else if(fullPhase === 'interests'){
+    // finish and review
+    fullPhase = 'review';
+    fullState.timestamp = new Date().toISOString();
+    document.getElementById('fullNext').innerText = 'Finish';
+    showFullStep();
+  } else if(fullPhase === 'review'){
+    // compute scores & show results
+    computeAndShowResults();
+    document.getElementById('fullAssessment').classList.add('hidden');
+  }
+});
+
+document.getElementById('fullPrev').addEventListener('click', ()=>{
+  if(fullPhase === 'skills' && fullIndex > 0){ fullIndex--; showFullStep(); }
+  else if(fullPhase === 'personality'){ if(fullIndex>0){ fullIndex--; showFullStep(); } else { fullPhase='skills'; fullIndex = SKILL_QUESTIONS.length-1; showFullStep(); } }
+  else if(fullPhase === 'interests'){ fullPhase='personality'; fullIndex = PERSONALITY_PAIRS.length-1; showFullStep(); }
+  else if(fullPhase === 'review'){ fullPhase='interests'; showFullStep(); }
+});
+
+document.getElementById('fullCancel').addEventListener('click', ()=>{
+  if(confirm('Cancel full assessment? Your in-progress answers will be lost.')){ document.getElementById('fullAssessment').classList.add('hidden'); document.getElementById('introCard').classList.remove('hidden'); }
+});
+
+function updateFullProgress(done, total){
+  const pct = Math.round((done/total)*100);
+  document.getElementById('fullProgressBar').style.width = pct + '%';
+  document.getElementById('fullProgressText').innerText = `${done}/${total}`;
+}
+
+/* -------------------------
+  Compute & render results
+-------------------------*/
+function computeAndShowResults(){
+  // aggregate skill scores into buckets
+  const buckets = { tech:0, design:0, data:0, management:0, trades:0, creative:0, engineering:0, business:0, health:0 };
+  SKILL_QUESTIONS.forEach(q=>{
+    const v = fullState.skills[q.id] || 3;
+    for(const [k,w] of Object.entries(q.maps)){ buckets[k] = (buckets[k]||0) + v * w; }
+  });
+  // personality influences: convert pairs to tendencies
+  const persTraits = {};
+  PERSONALITY_PAIRS.forEach((p,i)=>{
+    const sel = fullState.personality[p.id];
+    if(!sel) return;
+    // map pair to simple trait influence
+    // example: p1 a=alone => introvert, b=team => extrovert
+    if(i===0) persTraits['extroversion'] = (sel==='b') ? 1 : -1;
+    if(i===1) persTraits['planner'] = (sel==='a') ? 1 : -1;
+    if(i===2) persTraits['thinker'] = (sel==='a') ? 1 : -1;
+    if(i===3) persTraits['routine'] = (sel==='a') ? 1 : -1;
+    if(i===4) persTraits['specialist'] = (sel==='a') ? 1 : -1;
+  });
+  // interest matching weight
+  const interestTags = {};
+  fullState.interests.forEach(t=>{
+    if(t.includes('Software')) interestTags['tech'] = (interestTags['tech']||0)+2;
+    if(t.includes('Design')) interestTags['design'] = (interestTags['design']||0)+2;
+    if(t.includes('Data')) interestTags['data'] = (interestTags['data']||0)+2;
+    if(t.includes('Business')) interestTags['business'] = (interestTags['business']||0)+2;
+    if(t.includes('Health')) interestTags['health'] = (interestTags['health']||0)+2;
+    if(t.includes('Robotics')) interestTags['engineering'] = (interestTags['engineering']||0)+2;
+    if(t.includes('Arts')) interestTags['creative'] = (interestTags['creative']||0)+2;
+    if(t.includes('Education')) interestTags['education'] = (interestTags['education']||0)+2;
+    if(t.includes('Environment')) interestTags['environment'] = (interestTags['environment']||0)+2;
+    if(t.includes('Trades')) interestTags['trades'] = (interestTags['trades']||0)+2;
+  });
+
+  // combine into career scores
+  const careerScores = CAREER_RECIPES.map(c=>{
+    let score = 0;
+    c.tags.forEach(tag=>{
+      score += (buckets[tag] || 0) * 1.0;
+      score += (interestTags[tag] || 0) * 3.0;
+    });
+    // personality tweaks: product manager / marketing prefer extrovert/planner
+    if(c.id === 'product') score += (persTraits.planner || 0) * 4;
+    if(c.id === 'marketing') score += (persTraits.extroversion || 0) * 3;
+    if(c.id === 'teacher') score += (persTraits.extroversion ? -persTraits.extroversion : 0) * -1;
+    return { id: c.id, label: c.label, score: Math.round(score*10)/10 };
+  });
+
+  // sort desc
+  careerScores.sort((a,b)=>b.score - a.score);
+
+  // compose actions
+  const actions = generateActionsFor(careerScores.slice(0,4).map(c=>c.id));
+
+  // save to fullState and localStorage
+  fullState.timestamp = new Date().toISOString();
+  fullState.buckets = buckets;
+  fullState.careers = careerScores;
+  fullState.personalitySummary = persTraits;
+
+  const key = `ca_result_${currentUser.email}`;
+  localStorage.setItem(key, JSON.stringify(fullState));
+  renderResults(fullState, actions);
+}
+
+/* Render results into UI */
+function renderResults(state, actions){
+  document.getElementById('resultsCard').classList.remove('hidden');
+  document.getElementById('resultsTitle').innerText = 'Your Career Profile';
+  document.getElementById('savedAt').innerText = new Date(state.timestamp).toLocaleString();
+
+  // top skills: select highest buckets
+  const topSkills = Object.entries(state.buckets).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const skillList = document.getElementById('skillList'); skillList.innerHTML = '';
+  topSkills.forEach(s=> {
+    const li = document.createElement('li'); li.textContent = `${s[0]} — ${s[1].toFixed(1)}`; skillList.appendChild(li);
+  });
+
+  // personality summary text
+  const pers = state.personalitySummary || {};
+  const persText = `Extroversion: ${pers.extroversion>0? 'High' : pers.extroversion<0? 'Low':'Neutral'}, Planner: ${pers.planner>0?'Planner':'Flexible'}`;
+  document.getElementById('personalitySummary').innerText = persText;
+
+  // interests
+  const intList = document.getElementById('interestList'); intList.innerHTML = '';
+  (state.interests || []).forEach(i=> { const li=document.createElement('li'); li.textContent = i; intList.appendChild(li); });
+
+  // career suggestions
+  const careerList = document.getElementById('careerList'); careerList.innerHTML = '';
+  (state.careers || []).slice(0,6).forEach(c=> {
+    const li = document.createElement('li'); li.innerHTML = `<strong>${c.label}</strong> <span class="muted text-sm"> (score ${c.score})</span>`;
+    careerList.appendChild(li);
+  });
+
+  // actions
+  const actionEl = document.getElementById('actionList'); actionEl.innerHTML = '';
+  actions.forEach(a=> { const li=document.createElement('li'); li.textContent = a; actionEl.appendChild(li); });
+}
+
+/* Generate actionable next steps based on top careers */
+function generateActionsFor(topIds){
+  const actions = [];
+  if(topIds.includes('software')){ actions.push('Build a small software project (todo app) and publish on GitHub.'); actions.push('Complete a focused JavaScript/Python course.'); }
+  if(topIds.includes('data_scientist')){ actions.push('Practice data analysis with public datasets; learn pandas/SQL.'); actions.push('Take an introductory statistics course.'); }
+  if(topIds.includes('ux')){ actions.push('Create 3 case studies in Figma or Adobe XD showing design process.'); }
+  if(topIds.includes('product')){ actions.push('Read product strategy articles; lead a small project to practice prioritization.'); }
+  if(topIds.includes('mechanical')){ actions.push('Join a maker/hackerspace and build a mechanical prototype.'); }
+  if(topIds.includes('nurse')){ actions.push('Volunteer in community healthcare; research certification requirements.'); }
+  if(topIds.includes('graphic')){ actions.push('Create a portfolio with branding and motion samples.'); }
+  if(topIds.includes('marketing')){ actions.push('Run a small social campaign; learn analytics (GA) and content creation.'); }
+  if(topIds.includes('electrician')){ actions.push('Find a local vocational course or apprenticeship in trades.'); }
+  if(topIds.includes('teacher')){ actions.push('Start tutoring to gain classroom experience; record lesson plans.'); }
+  // general
+  actions.push('Talk to professionals in the field — informational interviews are high-value.');
+  return actions;
+}
+
+/* Save / Load latest full result */
+document.getElementById('saveLocalBtn').addEventListener('click', ()=>{
+  if(!currentUser){ alert('Sign in first'); return; }
+  const key = `ca_result_${currentUser.email}`;
+  const saved = JSON.parse(localStorage.getItem(key) || 'null');
+  if(!saved){ alert('No current full result to save.'); return; }
+  localStorage.setItem(`${key}_saved_${new Date().toISOString()}`, JSON.stringify(saved));
+  alert('Saved snapshot to localStorage.');
+});
+
+function loadLatestResult(){
+  if(!currentUser){ alert('Sign in first'); return; }
+  const key = `ca_result_${currentUser.email}`;
+  const r = JSON.parse(localStorage.getItem(key) || 'null');
+  if(!r){ alert('No saved full assessment found.'); return; }
+  const actions = generateActionsFor((r.careers||[]).slice(0,4).map(c=>c.id));
+  renderResults(r, actions);
+  window.scrollTo({ top: document.getElementById('resultsCard').offsetTop - 40, behavior:'smooth' });
+}
+
+function downloadLatestResult(){
+  if(!currentUser){ alert('Sign in first'); return; }
+  const key = `ca_result_${currentUser.email}`;
+  const r = JSON.parse(localStorage.getItem(key) || 'null');
+  if(!r){ alert('No saved full assessment found.'); return; }
+  const text = `Career Assessment — ${currentUser.name} (${currentUser.email})\nGenerated: ${new Date(r.timestamp).toLocaleString()}\n\nTop Careers:\n${(r.careers||[]).slice(0,6).map(c=>`- ${c.label} (score ${c.score})`).join('\n')}\n\nTop Skills:\n${Object.entries(r.buckets).sort((a,b)=>b[1]-a[1]).slice(0,6).map(s=>`- ${s[0]}: ${s[1].toFixed(1)}`).join('\n')}\n\nInterests:\n${(r.interests||[]).join(', ')}\n\nPersonality:\n${JSON.stringify(r.personalitySummary)}\n\nSuggested actions:\n${generateActionsFor((r.careers||[]).slice(0,4).map(c=>c.id)).map((a,i)=>`${i+1}. ${a}`).join('\n')}`;
+  const blob = new Blob([text], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `career_profile_${currentUser.email}.txt`; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* -------------------------
+  Weekly mini assessment
+-------------------------*/
+const WEEKLY_QUESTIONS = [
+  { id:'w1', q:'This week I felt more curious about learning new skills.'},
+  { id:'w2', q:'This week I worked on something related to my career interests.'},
+  { id:'w3', q:'I feel more confident about my chosen path than last week.'}
+];
+
+function startWeekly(){
+  if(!currentUser){ showLogin(true); return; }
+  weeklyTemp = { answers:{} };
+  document.getElementById('weeklyPanel').classList.remove('hidden');
+  document.getElementById('weeklyHistoryCard').classList.add('hidden');
+  const c = document.getElementById('weeklyContent');
+  c.innerHTML = '';
+  WEEKLY_QUESTIONS.forEach((qq,i)=>{
+    const div = document.createElement('div');
+    div.className='mb-2';
+    div.innerHTML = `<p class="font-medium">${i+1}. ${qq.q}</p>
+      <select data-q="${qq.id}" class="border rounded w-48 p-2 mt-1">
+        <option value="">Select</option>
+        <option value="0">Strongly disagree</option>
+        <option value="1">Disagree</option>
+        <option value="2">Neutral</option>
+        <option value="3">Agree</option>
+        <option value="4">Strongly agree</option>
+      </select>`;
+    c.appendChild(div);
+  });
+}
+
+document.getElementById('weeklyCancel').addEventListener('click', ()=> document.getElementById('weeklyPanel').classList.add('hidden'));
+document.getElementById('weeklySubmit').addEventListener('click', ()=>{
+  const selects = document.querySelectorAll('#weeklyContent select');
+  const answers = {};
+  for(const s of selects){
+    const v = s.value; if(v===''){ alert('Please answer all weekly questions'); return; }
+    answers[s.dataset.q] = Number(v);
+  }
+  const entry = { date: new Date().toISOString(), answers };
+  const key = `ca_weekly_${currentUser.email}`;
+  const arr = JSON.parse(localStorage.getItem(key) || '[]');
+  arr.push(entry);
+  localStorage.setItem(key, JSON.stringify(arr));
+  document.getElementById('weeklyPanel').classList.add('hidden');
+  alert('Weekly assessment saved.');
+});
+
+/* show weekly history */
+function showWeeklyHistory(){
+  if(!currentUser){ showLogin(true); return; }
+  const key = `ca_weekly_${currentUser.email}`;
+  const arr = JSON.parse(localStorage.getItem(key) || '[]');
+  document.getElementById('weeklyHistoryCard').classList.remove('hidden');
+  const el = document.getElementById('weeklyHistoryList'); el.innerHTML = '';
+  if(!arr.length){ el.innerText = 'No weekly assessments recorded yet.'; return; }
+  arr.slice().reverse().forEach(e=>{
+    const d = new Date(e.date);
+    const div = document.createElement('div');
+    div.className = 'border-b py-2';
+    div.innerHTML = `<div class="flex justify-between"><div class="text-sm font-medium">${d.toLocaleString()}</div><div class="muted text-sm">Avg: ${ (Object.values(e.answers).reduce((s,n)=>s+n,0)/Object.values(e.answers).length).toFixed(2) }</div></div>
+      <div class="text-xs muted mt-1">${ Object.entries(e.answers).map(a=>`${a[0]}:${a[1]}`).join(', ') }</div>`;
+    el.appendChild(div);
+  });
+}
+
+/* -------------------------
+  Utility: load latest on page load if any user
+-------------------------*/
+(function init(){
+  if(currentUser){
+    // try to auto-load latest result for convenience
+    const key = `ca_result_${currentUser.email}`;
+    const r = JSON.parse(localStorage.getItem(key) || 'null');
+    if(r){
+      const actions = generateActionsFor((r.careers||[]).slice(0,4).map(c=>c.id));
+      renderResults(r, actions);
+    }
+  }
+})();
+</script>
+</body>
+</html>
