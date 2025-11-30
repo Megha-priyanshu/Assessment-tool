@@ -1,6 +1,8 @@
+// src/api.js
+
 const API_BASE = "http://localhost:5000";
 
-// ========== AUTH ==========
+// ---------- AUTH ----------
 
 export async function registerUser(data) {
   const res = await fetch(`${API_BASE}/api/auth/register`, {
@@ -8,10 +10,9 @@ export async function registerUser(data) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
+
   const body = await res.json();
-  if (!res.ok) {
-    throw new Error(body.error || "Registration failed");
-  }
+  if (!res.ok) throw new Error(body.error || "Registration failed");
   return body;
 }
 
@@ -21,57 +22,89 @@ export async function loginUser(data) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
+
   const body = await res.json();
-  if (!res.ok) {
-    throw new Error(body.error || "Login failed");
-  }
+  if (!res.ok) throw new Error(body.error || "Login failed");
   return body;
 }
 
-// ========== FULL ASSESSMENT CRUD ==========
+// ---------- ASSESSMENTS CRUD ----------
 
-// CREATE – save full assessment
-export async function saveFullAssessment(data) {
-  const res = await fetch(`${API_BASE}/api/full-assessment`, {
+export async function createAssessment(data) {
+  console.log("📡 [API] POST /api/assessments payload:", data);
+
+  const res = await fetch(`${API_BASE}/api/assessments`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return res.json();
+
+  const body = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    console.error("❌ [API] createAssessment error response:", body);
+    throw new Error(body.error || "Failed to create assessment");
+  }
+
+  console.log("✅ [API] createAssessment success:", body);
+  return body;
 }
 
-// READ LATEST – get last saved assessment
-export async function getLatestFullAssessment() {
-  const res = await fetch(`${API_BASE}/api/full-assessment/latest`);
-  return res.json();
-}
-
-// READ ALL – list all assessments (optionally for one user)
-export async function getAllFullAssessments(userEmail) {
+export async function getAssessments(userEmail) {
   const url = userEmail
-    ? `${API_BASE}/api/full-assessment?userEmail=${encodeURIComponent(
+    ? `${API_BASE}/api/assessments?userEmail=${encodeURIComponent(
         userEmail
       )}`
-    : `${API_BASE}/api/full-assessment`;
+    : `${API_BASE}/api/assessments`;
+
+  console.log("📡 [API] GET", url);
 
   const res = await fetch(url);
-  return res.json();
+  const body = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    console.error("❌ [API] getAssessments error:", body);
+    throw new Error("Failed to load assessments");
+  }
+
+  console.log("✅ [API] getAssessments success, count:", body.length);
+  return body;
 }
 
-// UPDATE – update assessment (e.g., notes)
-export async function updateFullAssessment(id, data) {
-  const res = await fetch(`${API_BASE}/api/full-assessment/${id}`, {
+export async function updateAssessment(id, data) {
+  console.log("📡 [API] PUT /api/assessments/" + id, "payload:", data);
+
+  const res = await fetch(`${API_BASE}/api/assessments/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return res.json();
+
+  const body = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    console.error("❌ [API] updateAssessment error:", body);
+    throw new Error(body.error || "Failed to update assessment");
+  }
+
+  console.log("✅ [API] updateAssessment success:", body);
+  return body;
 }
 
-// DELETE – delete assessment
-export async function deleteFullAssessment(id) {
-  const res = await fetch(`${API_BASE}/api/full-assessment/${id}`, {
+export async function deleteAssessment(id) {
+  console.log("📡 [API] DELETE /api/assessments/" + id);
+
+  const res = await fetch(`${API_BASE}/api/assessments/${id}`, {
     method: "DELETE",
   });
-  return res.json();
+
+  const body = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    console.error("❌ [API] deleteAssessment error:", body);
+    throw new Error(body.error || "Failed to delete assessment");
+  }
+
+  console.log("✅ [API] deleteAssessment success:", body);
+  return body;
 }

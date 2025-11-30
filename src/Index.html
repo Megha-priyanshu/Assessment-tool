@@ -575,7 +575,7 @@ document.getElementById('saveLocalBtn').addEventListener('click', ()=>{
   const saved = JSON.parse(localStorage.getItem(key) || 'null');
   if(!saved){ alert('No current full result to save.'); return; }
   localStorage.setItem(`${key}_saved_${new Date().toISOString()}`, JSON.stringify(saved));
-  alert('Saved snapshot to localStorage.');
+  
 });
 
 function loadLatestResult(){

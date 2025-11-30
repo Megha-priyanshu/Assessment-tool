@@ -1,102 +1,132 @@
-import React, { useState } from 'react';
+// src/Assessment.js
+import { useState } from "react";
+import { createAssessment } from "./api";      // ✅ only this import
+import { useAuth } from "./auth/AuthContext.jsx";
 
-const AssessmentForm = ({ onSubmit }) => {
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        subject: '',
-        activity: '',
-        learning: ''
-    });
+const initial = { name: "", interest: "", confidence: "" };
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({
-            ...formData,
-            [name]: value
-        });
-    };
+export default function Assessment() {
+  const [form, setForm] = useState(initial);
+  const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSubmit(formData);
-    };
+  const { user } = useAuth(); // user?.email used in payload
 
-    return (
-        <form onSubmit={handleSubmit} className="assessment-form">
-            <div>
-                <label htmlFor="name">Name:</label>
-                <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                />
-            </div>
-            <div>
-                <label htmlFor="email">Email:</label>
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                />
-            </div>
-            <div>
-                <label htmlFor="subject">Which software field interests you the most?</label>
-                <select
-                    id="subject"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    required
-                >
-                    <option value="">Select</option>
-                    <option value="webdev">Web Development</option>
-                    <option value="datasci">Data Science</option>
-                    <option value="uiux">UI/UX Design</option>
-                    <option value="sysadmin">Systems/Cloud</option>
-                </select>
-            </div>
-            <div>
-                <label htmlFor="activity">What type of activities do you prefer?</label>
-                <select
-                    id="activity"
-                    name="activity"
-                    value={formData.activity}
-                    onChange={handleChange}
-                    required
-                >
-                    <option value="">Select</option>
-                    <option value="problem">Solving Problems</option>
-                    <option value="creative">Creative Work</option>
-                    <option value="team">Teamwork</option>
-                    <option value="outdoor">Outdoor Activities</option>
-                </select>
-            </div>
-            <div>
-                <label htmlFor="learning">What is your favorite way to learn?</label>
-                <select
-                    id="learning"
-                    name="learning"
-                    value={formData.learning}
-                    onChange={handleChange}
-                    required
-                >
-                    <option value="">Select</option>
-                    <option value="visual">Visual</option>
-                    <option value="hands">Hands-on</option>
-                    <option value="reading">Reading/Writing</option>
-                    <option value="listening">Listening</option>
-                </select>
-            </div>
-            <button type="submit">Submit</button>
-        </form>
-    );
-};
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+    setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
+  };
 
-export default AssessmentForm;
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "Name is required";
+    if (!form.interest.trim()) e.interest = "Interest is required";
+    if (!form.confidence.trim()) {
+      e.confidence = "Confidence level is required";
+    } else {
+      const c = Number(form.confidence);
+      if (isNaN(c) || c < 1 || c > 5) {
+        e.confidence = "Confidence must be between 1 and 5";
+      }
+    }
+    return e;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log("🚀 [Assessment] handleSubmit called with form:", form);
+
+    const v = validate();
+    if (Object.keys(v).length) {
+      console.log("⚠️ [Assessment] validation errors:", v);
+      setErrors(v);
+      return;
+    }
+
+    try {
+      setSubmitError("");
+      setSuccess("");
+      setLoading(true);
+
+      // ✅ This is what gets sent to MongoDB via backend
+      const payload = {
+        answers: {
+          name: form.name,
+          interest: form.interest,
+          confidence: form.confidence,
+        },
+        scores: {
+          confidence: Number(form.confidence),
+        },
+        notes: "",
+        userEmail: user ? user.email : null,
+      };
+
+      console.log("📡 [Assessment] sending payload to backend:", payload);
+
+      await createAssessment(payload); // 🔗 calls POST /api/assessments
+
+      setSuccess("Assessment saved successfully to backend ✅");
+      console.log("✅ [Assessment] save success");
+      setForm(initial);
+    } catch (err) {
+      console.error("❌ [Assessment] error in createAssessment:", err);
+      setSubmitError("Unable to save assessment. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="page">
+      <h2>Assessment</h2>
+      <form className="form" onSubmit={handleSubmit} noValidate>
+        <label>
+          Name
+          <input
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+          />
+          {errors.name && <span className="error">{errors.name}</span>}
+        </label>
+
+        <label>
+          Primary interest
+          <input
+            name="interest"
+            value={form.interest}
+            onChange={handleChange}
+          />
+          {errors.interest && (
+            <span className="error">{errors.interest}</span>
+          )}
+        </label>
+
+        <label>
+          Confidence level (1–5)
+          <input
+            name="confidence"
+            type="number"
+            min="1"
+            max="5"
+            value={form.confidence}
+            onChange={handleChange}
+          />
+          {errors.confidence && (
+            <span className="error">{errors.confidence}</span>
+          )}
+        </label>
+
+        {submitError && <div className="error">{submitError}</div>}
+        {success && <div className="success">{success}</div>}
+
+        <button className="primary-btn" type="submit" disabled={loading}>
+          {loading ? "Saving..." : "Submit"}
+        </button>
+      </form>
+    </div>
+  );
+}
